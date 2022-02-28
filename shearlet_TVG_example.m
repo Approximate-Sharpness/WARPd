@@ -59,17 +59,16 @@ options.opB = @(x,mode) Amat_maker([alpha1*TVmat1; [sparse(3*N^2,N^2),alpha0*TVm
 options.q = 5*N^2;
 
 %% Algorithmic parameters
-options.C1=sqrt(1/log(N));
-options.C2=sqrt(log(N));
+options.C1=sqrt(1/(50*log(N)));
+options.C2=sqrt(50*log(N));
 options.lambda=1/options.C2;
 options.lambda=1/10000;
 epsilon = max(1.2*norm(b(:)-b0(:)),10^(-8));
 delta = 10^(-5);
 
 options.tau = 1;
-options.upsilon=exp(-1);
 
-k_iter = 5; n_iter = 7;
+k_iter = 5; n_iter = 20;
 options.reweight=1;
 options.shearlets=1;
 
@@ -79,9 +78,13 @@ y0=0*[b;zeros(options.q,1)];
 options.type=4;
 options.errFcn=@(x) norm(reshape(min(max(real(x(1:N^2)),0),1), N,N)-reshape(im,N,N),'fro')/norm(im(:));
 
-[rec_BP,y_BP,~,E_BP] = WARPd_reweight(opA, epsilon,D, b, x0, y0, delta, 5, 10, options, weights, N);
-[rec_SR,y_SR,~,E_SR] = WARPdSR_reweight(opA, D, b, x0, y0, delta, 5, 10, options, weights, N);
+[rec_BP,y_BP,~,E_BP] = WARPd_reweight_revision(opA, epsilon,D, b, x0, y0, delta, n_iter, k_iter, options, weights, N);
+[~,~,~,E_BPb] = WARPd_reweight_revision(opA, epsilon,D, b, x0, y0, delta, 1, n_iter*k_iter, options, weights, N);
 
+[rec_SR,y_SR,~,E_SR] = WARPdSR_reweight_revision(opA, D, b, x0, y0, 10^(-4), n_iter, k_iter, options, weights, N);
+[~,~,~,E_SRb] = WARPdSR_reweight_revision(opA, D, b, x0, y0, delta, 1, n_iter*k_iter, options, weights, N);
+
+%%
 im_BP = reshape(min(max(real(rec_BP(1:N^2)),0),1), N,N);
 im_SR = reshape(min(max(real(rec_SR(1:N^2)),0),1), N,N);
 im = reshape(im,N,N);
@@ -90,7 +93,7 @@ im = reshape(im,N,N);
 options.shearlets=0;
 k_iter = 50;
 n_iter = 5;
-[rec_GTV,~,~,E_GTV] = WARPd_reweight(opA, epsilon, D, b, x0, y0, delta, n_iter, k_iter, options, weights, N);
+[rec_GTV,~,~,E_GTV] = WARPd_reweight_revision(opA, epsilon, D, b, x0, y0, delta, n_iter, k_iter, options, weights, N);
 im_GTV = reshape(min(max(real(rec_GTV(1:N^2)),0),1), N,N);
 %%
 options.opB = @(x,mode) Amat_maker(alpha*TVmat0,x,mode);
@@ -98,17 +101,21 @@ options.q = N^2;
 opA = @(x, mode) cil_op_fourier_2d2(x, mode, N, idx);
 x0 = 0*opA(b,0);
 y0=0*[b;zeros(options.q,1)];
-[rec_TV,~,~,E_TV] = WARPd_reweight(opA, epsilon, D, b, x0, y0, delta, n_iter, k_iter, options, weights, N);
+[rec_TV,~,~,E_TV] = WARPd_reweight_revision(opA, epsilon, D, b, x0, y0, delta, n_iter, k_iter, options, weights, N);
 im_TV = reshape(min(max(real(rec_TV(1:N^2)),0),1), N,N);
 
 
 %%
 im_SR = reshape(min(max(real(rec_SR(1:N^2)),0),1), N,N);
 close all
-Y=cell(5,1);
-Y{1}=im;    Y{2}=im_TV; Y{3}=im_GTV;    Y{4}=im_BP; Y{5}=im_SR;
 
-for j=1:5
+%%
+close all
+Y=cell(5,1);
+Y{1}=im;    Y{2}=im_TV; Y{3}=im_GTV;   
+Y{4}=im_BP; Y{5}=im_SR;
+
+for j=4:5
     YY=Y{j};
     psnr(im2uint16(YY), im2uint16(im))
     figure
@@ -128,10 +135,12 @@ end
 
 %%
 figure
-semilogy(E_BP,'linewidth',2)
+semilogy(E_BP.^2,'linewidth',2)
 hold on
-semilogy(E_SR,'linewidth',2)
-xlim([0,30])
+semilogy(E_SR.^2,'linewidth',2)
+xlim([0,100])
+semilogy(E_BPb.^2,'color',[0    0.4470    0.7410],'linewidth',2,'linestyle','--')
+semilogy(E_SRb.^2,'color',[0.8500    0.3250    0.0980],'linewidth',2,'linestyle','--')
 legend({'WARPd','WARPdSR'},'location','northeast','fontsize',14,'interpreter','latex')
 
 function x_out = Amat_maker(A,x,mode)

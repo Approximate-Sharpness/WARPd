@@ -20,11 +20,11 @@ b=X_real(Omega); % data we see in form of matrix entries
 options.L_A=0.7;%min(1.6*sqrt(m/(n1*n2)),1); % this may need to be adjusted to one for some problems
 options.C2=1; options.C1=sqrt(n1*n2/m); % these may need to be increased for some problems
 options.tau=1; % proximal step size
-options.upsilon=exp(-1); % optimal rescale factor
+options.nu=exp(-1); % optimal rescale factor
 epsilon = 10^(-10); % this is an "exact" recovery problem
 delta = min(options.C2*epsilon,0.0001);
 
-k_iter = ceil(2*options.C1*options.C2*options.L_A/(options.tau*options.upsilon));
+k_iter = ceil(2*options.C1*options.C2*options.L_A/(options.tau*options.nu));
 n_iter = ceil(maxiter/k_iter);
 
 options.errFcn = @(U,S,V) norm((U*S*V')-X_real,'fro')/norm(X_real,'fro'); % this a test function we want to compute for each iterate
@@ -37,7 +37,7 @@ options.type=1; % set to 2 for ergodic
 
 X_real=round((DIST)); % perform experiment with M^(2)
 options.L_A=min(1.6*sqrt(m/(n1*n2)),1);
-k_iter = ceil(2*options.C1*options.C2*options.L_A/(options.tau*options.upsilon));
+k_iter = ceil(2*options.C1*options.C2*options.L_A/(options.tau*options.nu));
 n_iter = ceil(maxiter/k_iter);
 b=X_real(Omega);
 options.errFcn = @(U,S,V) norm((U*S*V')-X_real,'fro')/norm(X_real,'fro'); % this a test function we want to compute for each iterate
